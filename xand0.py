@@ -1,5 +1,4 @@
 import time
-
 import pygame
 import sys
 
@@ -7,22 +6,27 @@ ADANCIME_MAX = 6
 
 
 def elem_identice(lista):
-    if (all(elem == lista[0] for elem in lista[1:])):
+    if all(elem == lista[0] for elem in lista[1:]):
         return lista[0] if lista[0] != Joc.GOL else False
     return False
 
 
 class Joc:
+    def __init__(self, tabla=None):
+        self.matr = tabla or [self.__class__.GOL] * NR_COLOANE**2
     """
     Clasa care defineste jocul. Se va schimba de la un joc la altul.
     """
-    NR_COLOANE = 3
+    NR_COLOANE = input("Introduceti dimensiunea tablei:")
+    while not  4 <= int(NR_COLOANE) <= 10:
+        print("Dimensiunea tablei trebuie sa se incadreze intre 4 si 10. Introduceti o alta dimensiune!")
+        NR_COLOANE = input("Introduceti dimensiunea tablei:")
     JMIN = None
     JMAX = None
     GOL = '#'
 
     @classmethod
-    def initializeaza(cls, display, NR_COLOANE=3, dim_celula=100):
+    def initializeaza(cls, display, NR_COLOANE=int(NR_COLOANE), dim_celula=100):
         cls.display = display
         cls.dim_celula = dim_celula
         cls.x_img = pygame.image.load('ics.png')
@@ -35,11 +39,11 @@ class Joc:
                 patr = pygame.Rect(coloana * (dim_celula + 1), linie * (dim_celula + 1), dim_celula, dim_celula)
                 cls.celuleGrid.append(patr)
 
-    def deseneaza_grid(self, marcaj=None):  # tabla de exemplu este ["#","x","#","0",......]
+    def deseneaza_grid(self, marcaj=None, NR_COLOANE=int(NR_COLOANE)):  # tabla de exemplu este ["#","x","#","0",......]
 
         for ind in range(len(self.matr)):
-            linie = ind // 3  # // inseamna div
-            coloana = ind % 3
+            linie = ind // NR_COLOANE
+            coloana = ind % NR_COLOANE
 
             if marcaj == ind:
                 # daca am o patratica selectata, o desenez cu rosu
@@ -49,17 +53,12 @@ class Joc:
                 culoare = (255, 255, 255)
             pygame.draw.rect(self.__class__.display, culoare, self.__class__.celuleGrid[ind])  # alb = (255,255,255)
             if self.matr[ind] == 'x':
-                self.__class__.display.blit(self.__class__.x_img, (
-                coloana * (self.__class__.dim_celula + 1), linie * (self.__class__.dim_celula + 1)))
+                self.__class__.display.blit(self.__class__.x_img, (coloana * (self.__class__.dim_celula + 1), linie * (self.__class__.dim_celula + 1)))
             elif self.matr[ind] == '0':
-                self.__class__.display.blit(self.__class__.zero_img, (
-                coloana * (self.__class__.dim_celula + 1), linie * (self.__class__.dim_celula + 1)))
+                self.__class__.display.blit(self.__class__.zero_img, (coloana * (self.__class__.dim_celula + 1), linie * (self.__class__.dim_celula + 1)))
         pygame.display.flip()  # obligatoriu pentru a actualiza interfata (desenul)
 
     # pygame.display.update()
-
-    def __init__(self, tabla=None):
-        self.matr = tabla or [self.__class__.GOL] * 9
 
     @classmethod
     def jucator_opus(cls, jucator):
@@ -74,7 +73,7 @@ class Joc:
                or elem_identice(self.matr[2:9:3])
                or elem_identice(self.matr[0:9:4])
                or elem_identice(self.matr[2:8:2]))
-        if (rez):
+        if rez:
             return rez
         elif self.__class__.GOL not in self.matr:
             return 'remiza'
@@ -95,7 +94,7 @@ class Joc:
     def linie_deschisa(self, lista, jucator):
         jo = self.jucator_opus(jucator)
         # verific daca pe linia data nu am simbolul jucatorului opus
-        if not jo in lista:
+        if jo not in lista:
             return 1
         return 0
 
@@ -113,13 +112,13 @@ class Joc:
         t_final = self.final()
         # if (adancime==0):
         if t_final == self.__class__.JMAX:
-            return (99 + adancime)
+            return 99 + adancime
         elif t_final == self.__class__.JMIN:
-            return (-99 - adancime)
+            return -99 - adancime
         elif t_final == 'remiza':
             return 0
         else:
-            return (self.linii_deschise(self.__class__.JMAX) - self.linii_deschise(self.__class__.JMIN))
+            return self.linii_deschise(self.__class__.JMAX) - self.linii_deschise(self.__class__.JMIN)
 
     def __str__(self):
         sir = (" ".join([str(x) for x in self.matr[0:3]]) + "\n" +
@@ -206,10 +205,10 @@ def alpha_beta(alpha, beta, stare):
             # calculeaza estimarea pentru starea noua, realizand subarborele
             stare_noua = alpha_beta(alpha, beta, mutare)
 
-            if (estimare_curenta < stare_noua.estimare):
+            if estimare_curenta < stare_noua.estimare:
                 stare.stare_aleasa = stare_noua
                 estimare_curenta = stare_noua.estimare
-            if (alpha < stare_noua.estimare):
+            if alpha < stare_noua.estimare:
                 alpha = stare_noua.estimare
                 if alpha >= beta:
                     break
@@ -221,11 +220,11 @@ def alpha_beta(alpha, beta, stare):
 
             stare_noua = alpha_beta(alpha, beta, mutare)
 
-            if (estimare_curenta > stare_noua.estimare):
+            if estimare_curenta > stare_noua.estimare:
                 stare.stare_aleasa = stare_noua
                 estimare_curenta = stare_noua.estimare
 
-            if (beta > stare_noua.estimare):
+            if beta > stare_noua.estimare:
                 beta = stare_noua.estimare
                 if alpha >= beta:
                     break
@@ -236,14 +235,13 @@ def alpha_beta(alpha, beta, stare):
 
 def afis_daca_final(stare_curenta):
     final = stare_curenta.tabla_joc.final()
-    if (final):
-        if (final == "remiza"):
+    if final:
+        if final == "remiza":
             print("Remiza!")
         else:
             print("A castigat " + final)
 
         return True
-
     return False
 
 
@@ -260,7 +258,7 @@ def main():
     raspuns_valid = False
     while not raspuns_valid:
         Joc.JMIN = input("Doriti sa jucati cu x sau cu 0? ").lower()
-        if (Joc.JMIN in ['x', '0']):
+        if Joc.JMIN in ['x', '0']:
             raspuns_valid = True
         else:
             print("Raspunsul trebuie sa fie x sau 0.")
@@ -276,7 +274,7 @@ def main():
 
     # setari interf grafica
     pygame.init()
-    pygame.display.set_caption('x si 0')
+    pygame.display.set_caption('Naiboiu Teodor')
     # dimensiunea ferestrei in pixeli
     ecran = pygame.display.set_mode(size=(302, 302))  # N *100+ N-1
     Joc.initializeaza(ecran)
@@ -285,7 +283,7 @@ def main():
     tabla_curenta.deseneaza_grid()
     while True:
 
-        if (stare_curenta.j_curent == Joc.JMIN):
+        if stare_curenta.j_curent == Joc.JMIN:
             # muta jucatorul
             # [MOUSEBUTTONDOWN, MOUSEMOTION,....]
             # l=pygame.event.get()
@@ -305,7 +303,7 @@ def main():
                             coloana = np % 3
                             ###############################
                             if stare_curenta.tabla_joc.matr[np] == Joc.JMIN:
-                                if (de_mutat and linie == de_mutat[0] and coloana == de_mutat[1]):
+                                if de_mutat and linie == de_mutat[0] and coloana == de_mutat[1]:
                                     # daca am facut click chiar pe patratica selectata, o deselectez
                                     de_mutat = False
                                     stare_curenta.tabla_joc.deseneaza_grid()
@@ -315,7 +313,7 @@ def main():
                                     stare_curenta.tabla_joc.deseneaza_grid(np)
                             if stare_curenta.tabla_joc.matr[np] == Joc.GOL:
                                 if de_mutat:
-                                    #### eventuale teste legate de mutarea simbolului
+                                    # eventuale teste legate de mutarea simbolului
                                     stare_curenta.tabla_joc.matr[de_mutat[0] * 3 + de_mutat[1]] = Joc.GOL
                                     de_mutat = False
                                 # plasez simbolul pe "tabla de joc"
@@ -328,12 +326,11 @@ def main():
                                 stare_curenta.tabla_joc.deseneaza_grid()
                                 # testez daca jocul a ajuns intr-o stare finala
                                 # si afisez un mesaj corespunzator in caz ca da
-                                if (afis_daca_final(stare_curenta)):
+                                if afis_daca_final(stare_curenta):
                                     break
 
                                 # S-a realizat o mutare. Schimb jucatorul cu cel opus
                                 stare_curenta.j_curent = Joc.jucator_opus(stare_curenta.j_curent)
-
 
         # --------------------------------
         else:  # jucatorul e JMAX (calculatorul)
@@ -354,7 +351,7 @@ def main():
             t_dupa = int(round(time.time() * 1000))
             print("Calculatorul a \"gandit\" timp de " + str(t_dupa - t_inainte) + " milisecunde.")
 
-            if (afis_daca_final(stare_curenta)):
+            if afis_daca_final(stare_curenta):
                 break
 
             # S-a realizat o mutare. Schimb jucatorul cu cel opus
