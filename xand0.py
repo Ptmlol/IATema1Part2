@@ -5,28 +5,20 @@ import sys
 ADANCIME_MAX = 6
 
 
-def elem_identice(lista):
-    if all(elem == lista[0] for elem in lista[1:]):
-        return lista[0] if lista[0] != Joc.GOL else False
-    return False
-
 
 class Joc:
-    def __init__(self, tabla=None):
-        self.matr = tabla or [self.__class__.GOL] * NR_COLOANE**2
+    def __init__(self, n, tabla=None):
+        self.dim = n
+        self.matr = tabla or [self.__class__.GOL] * (n * n)
     """
     Clasa care defineste jocul. Se va schimba de la un joc la altul.
     """
-    NR_COLOANE = input("Introduceti dimensiunea tablei:")
-    while not  4 <= int(NR_COLOANE) <= 10:
-        print("Dimensiunea tablei trebuie sa se incadreze intre 4 si 10. Introduceti o alta dimensiune!")
-        NR_COLOANE = input("Introduceti dimensiunea tablei:")
     JMIN = None
     JMAX = None
     GOL = '#'
 
     @classmethod
-    def initializeaza(cls, display, NR_COLOANE=int(NR_COLOANE), dim_celula=100):
+    def initializeaza(cls, display, NR_COLOANE, dim_celula=100):
         cls.display = display
         cls.dim_celula = dim_celula
         cls.x_img = pygame.image.load('ics.png')
@@ -39,11 +31,11 @@ class Joc:
                 patr = pygame.Rect(coloana * (dim_celula + 1), linie * (dim_celula + 1), dim_celula, dim_celula)
                 cls.celuleGrid.append(patr)
 
-    def deseneaza_grid(self, marcaj=None, NR_COLOANE=int(NR_COLOANE)):  # tabla de exemplu este ["#","x","#","0",......]
+    def deseneaza_grid(self, marcaj=None):  # tabla de exemplu este ["#","x","#","0",......]
 
         for ind in range(len(self.matr)):
-            linie = ind // NR_COLOANE
-            coloana = ind % NR_COLOANE
+            linie = ind // self.dim
+            coloana = ind % self.dim
 
             if marcaj == ind:
                 # daca am o patratica selectata, o desenez cu rosu
@@ -65,14 +57,7 @@ class Joc:
         return cls.JMAX if jucator == cls.JMIN else cls.JMIN
 
     def final(self):
-        rez = (elem_identice(self.matr[0:3])
-               or elem_identice(self.matr[3:6])
-               or elem_identice(self.matr[6:9])
-               or elem_identice(self.matr[0:9:3])
-               or elem_identice(self.matr[1:9:3])
-               or elem_identice(self.matr[2:9:3])
-               or elem_identice(self.matr[0:9:4])
-               or elem_identice(self.matr[2:8:2]))
+
         if rez:
             return rez
         elif self.__class__.GOL not in self.matr:
@@ -80,13 +65,17 @@ class Joc:
         else:
             return False
 
+    def modif_matr(self, stare):
+
+
     def mutari(self, jucator_opus):
         l_mutari = []
         for i in range(len(self.matr)):
             if self.matr[i] == self.__class__.GOL:
                 matr_tabla_noua = list(self.matr)
                 matr_tabla_noua[i] = jucator_opus
-                l_mutari.append(Joc(matr_tabla_noua))
+                matr_modif = self.modif_matr(matr_tabla_noua)
+                l_mutari.append(Joc(self.dim, matr_modif))
         return l_mutari
 
     # linie deschisa inseamna linie pe care jucatorul mai poate forma o configuratie castigatoare
@@ -120,12 +109,21 @@ class Joc:
         else:
             return self.linii_deschise(self.__class__.JMAX) - self.linii_deschise(self.__class__.JMIN)
 
-    def __str__(self):
-        sir = (" ".join([str(x) for x in self.matr[0:3]]) + "\n" +
-               " ".join([str(x) for x in self.matr[3:6]]) + "\n" +
-               " ".join([str(x) for x in self.matr[6:9]]) + "\n")
-
+    def sirAfisare(self):
+        sir = "  |"
+        sir += " ".join([str(i) for i in range(self.dim)]) + "\n"
+        sir += "-" * (self.dim + 1) * 2 + "\n"
+        for i in range(len(self.matr)):
+            if i % self.dim == 0:
+                sir += str(i // self.dim) + " |" + self.matr[i]
+            else:
+                sir += " " + self.matr[i]
+            if i % self.dim == self.dim - 1:
+                sir += "\n"
         return sir
+
+    def __str__(self):
+        return self.sirAfisare()
 
 
 class Stare:
@@ -151,6 +149,7 @@ class Stare:
 
         # cea mai buna mutare din lista de mutari posibile pentru jucatorul curent
         self.stare_aleasa = None
+        self.parinte = parinte
 
     def mutari(self):
         l_mutari = self.tabla_joc.mutari(self.j_curent)
@@ -262,10 +261,14 @@ def main():
             raspuns_valid = True
         else:
             print("Raspunsul trebuie sa fie x sau 0.")
+    dim = int(input("Introduceti dimensiunea tablei:"))
+    while not 4 <= int(dim) <= 10:
+        print("Dimensiunea tablei trebuie sa se incadreze intre 4 si 10. Introduceti o alta dimensiune!")
+        dim = int(input("Introduceti dimensiunea tablei:"))
     Joc.JMAX = '0' if Joc.JMIN == 'x' else 'x'
 
     # initializare tabla
-    tabla_curenta = Joc()
+    tabla_curenta = Joc(dim)
     print("Tabla initiala")
     print(str(tabla_curenta))
 
@@ -274,11 +277,10 @@ def main():
 
     # setari interf grafica
     pygame.init()
-    pygame.display.set_caption('Naiboiu Teodor')
-    # dimensiunea ferestrei in pixeli
-    ecran = pygame.display.set_mode(size=(302, 302))  # N *100+ N-1
-    Joc.initializeaza(ecran)
-
+    pygame.display.set_caption('Naiboiu Teodor x si 0')
+    ecran = pygame.display.set_mode(size=(dim * 100 + dim - 1, dim * 100 + dim - 1))
+    Joc.initializeaza(ecran, dim)
+    tabla_curenta = Joc(dim)
     de_mutat = False
     tabla_curenta.deseneaza_grid()
     while True:
