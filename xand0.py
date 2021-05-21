@@ -91,21 +91,24 @@ class Joc:
             if 0 <= i < len(self.matr) and self.matr[i] == Joc.GOL: # parcurgem lista de vecini si verificam daca suntem pe loc gol
                 linie = i // self.dim
                 coloana = i % self.dim
-                if abs(linie - index // self.dim) > 1 or abs(coloana - index % self.dim) > 1: # daca suntem verficiam sa nu fim la o distanta mai mare de 1 pt conditia pt diagonale
+                if abs(linie - index // self.dim) > 1 or abs(coloana - index % self.dim) > 1: # daca suntem verficam sa nu fim la o distanta mai mare de 1 pt conditia pt diagonale
                     continue
                 vec_lib.append(i)
         return vec_lib
 
-    def indici_valizi(self, simbol):
+    def indici_valizi(self, simbol, estimare = None):
         ind_val = []
         for i in range(len(self.matr)):
             if self.matr[i] == simbol:
                 vec_lib = self.vecini_liberi(i)
                 ind_val += vec_lib
-        set_ind_val = set(ind_val) # introducem  indicii valizi intr un set
-        return set_ind_val
+        if not estimare:
+            set_ind_val = set(ind_val) # introducem  indicii valizi intr un set
+            return set_ind_val
+        else:
+            return ind_val
 
-    def coloreaza_loser(self, pos1, pos2, pos3, simbol_winner):
+    def coloreaza_loser(self, pos1, pos2, pos3, simbol_winner): #B7
         for ind in range(len(self.matr)):
             linie = ind // self.dim
             coloana = ind % self.dim
@@ -145,22 +148,36 @@ class Joc:
         l_mutari = []
         for i in range(len(self.matr)):
             if self.matr[i] == self.__class__.GOL:
-                ind_val = self.indici_valizi(jucator_opus)
+                ind_val = self.indici_valizi(jucator_opus)  # B5
                 if i in ind_val or ''.join(self.matr).count(jucator_opus) == 0: # verificam daca avem mutare valida sau daca nu avem nici un simbol introduc pe tabla, daca da, introducem simbolul pe tabla
                     matr_tabla_noua = list(self.matr)
                     matr_tabla_noua[i] = jucator_opus
                     l_mutari.append(Joc(self.dim, matr_tabla_noua))
         return l_mutari
 
-    def estimeaza_scor(self, adancime):
+    def linii_inchise(self, jucator): #numar cate secvente "xx" sau "00" am pe linii si coloane
+        config = ''.join([jucator]*2)
+        linii = [self.matr[i * self.dim:(i + 1) * self.dim] for i in range((len(self.matr) + self.dim - 1) // self.dim)]
+        coloane = [self.matr[i: i + self.dim * (self.dim - 1) + 1:self.dim] for i in range(self.dim - 1)]
+        count = 0
+        for linie in linii:
+            count += ''.join(linie).count(config)
+        for coloana in coloane:
+            count += ''.join(coloana).count(config)
+        return count
+
+    def estimeaza_scor(self, adancime, estimare="1"):
         t_final = self.final()
         if t_final == self.__class__.JMAX:
             return 99 + adancime
         elif t_final == self.__class__.JMIN:
             return -99 - adancime
         elif t_final == 'remiza':
-            return 0
-        return 0
+            return 0 # MODIFICA
+        elif estimare == "1":
+            return self.linii_inchise(Joc.JMIN) - self.linii_inchise(Joc.JMAX)  # cine are mai putine secvente "xx" pe linie sau coloana  este in avantaj
+        else:
+            return self.linii_inchise(Joc.JMIN) * 2 - self.linii_inchise(Joc.JMAX) * 2  # acelasi lucru dar cu numarul de simboluri
 
     def sirAfisare(self):
         try:
@@ -347,7 +364,7 @@ if __name__ == "__main__":
         except Exception:
             pass
     Joc.JMAX = '0' if Joc.JMIN == 'x' else 'x'
-    dificultate = 0
+    dificultate = 0 # B2
     while not 1 <= dificultate <= 3:
         try:
             dificultate = int(input("Alegeti dificultatea:\n1-Easy\n2-Medium\n3-Hard\n"))
@@ -362,11 +379,11 @@ if __name__ == "__main__":
     print(str(tabla_curenta))
 
     # creare stare initiala
-    stare_curenta = Stare(tabla_curenta, 'x', dificultate)
+    stare_curenta = Stare(tabla_curenta, 'x', dificultate) #B2
 
     # setari interf grafica
     pygame.init()
-    pygame.display.set_caption('Naiboiu Teodor. X si 0')
+    pygame.display.set_caption('312 Naiboiu Teodor. X si 0')
     ecran = pygame.display.set_mode(size=(dim * 100 + dim - 1, dim * 100 + dim - 1))
     Joc.initializeaza(ecran, dim)
     tabla_curenta = Joc(dim)
@@ -402,6 +419,7 @@ if __name__ == "__main__":
                             if stare_curenta.tabla_joc.matr[np] == Joc.GOL and ( np in stare_curenta.tabla_joc.indici_valizi(Joc.JMIN) or ''.join(stare_curenta.tabla_joc.matr).count(Joc.JMIN)==0):
                                 stare_curenta.tabla_joc.matr[linie * dim + coloana] = Joc.JMIN
                                 add_moves("j")
+
 
                                 # afisarea starii jocului in urma mutarii utilizatorului
                                 print("\nTabla dupa mutarea jucatorului")
